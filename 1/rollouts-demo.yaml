@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rollouts-demo
+      channel: blue
+  template:
+    metadata:
+      labels:
+        app: rollouts-demo
+        channel: blue
+    spec:
+      securityContext:
+        # unsafe sysctls should be allowed on k8s nodes
+        #sysctls:
+        #- name: net.ipv4.tcp_congestion_control
+        #  value: bbr
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - rollouts-demo
+              - key: channel
+                operator: In
+                values:
+                - blue
+            topologyKey: "kubernetes.io/hostname"
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - rollouts-demo
+              - key: channel
+                operator: In
+                values:
+                - blue
+            topologyKey: "kubernetes.io/zone"
+
+      containers:
+      - name: rollouts
+        image: argoproj/rollouts-demo:blue
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rollouts-demo
+# untested
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+spec:
+  selector:
+    app: rollouts-demo
+    channel: blue
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
