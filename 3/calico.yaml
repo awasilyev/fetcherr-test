@@ -1,0 +1,23 @@
+apiVersion: projectcalico.org/v3
+kind: NetworkPolicy
+metadata:
+  name: block-api
+  namespace: default
+spec:
+  selector: app == 'rollouts-demo'
+  types:
+  - Egress
+  egress:
+  - action: Deny
+    protocol: TCP
+    source:
+      selector: app == 'rollouts-demo'
+    destination:
+      # fetched manually via
+      # kubectl -n default get endpoints kubernetes --no-headers | awk '{ print $2 }'
+      nets:
+        - 10.0.70.96/32
+        - 10.0.73.22/32   
+      ports:
+        - 443
+
